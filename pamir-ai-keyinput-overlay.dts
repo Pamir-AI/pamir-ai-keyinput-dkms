@@ -7,9 +7,6 @@
 /dts-v1/;
 /plugin/;
 
-#include <dt-bindings/gpio/gpio.h>
-#include <dt-bindings/pinctrl/bcm2835.h>
-
 / {
 	compatible = "brcm,bcm2712";
 
@@ -41,8 +38,8 @@
 		__overlay__ {
 			uart2_pins: uart2_pins {
 				brcm,pins = <4 5>; /* TX on GPIO4, RX on GPIO5 */
-				brcm,function = <BCM2835_FSEL_ALT4 BCM2835_FSEL_ALT4>;
-				brcm,pull = <BCM2835_PUD_OFF BCM2835_PUD_UP>;
+				brcm,function = <3 3>; /* ALT4 = 3 */
+				brcm,pull = <0 2>; /* OFF = 0, UP = 2 */
 			};
 		};
 	};
