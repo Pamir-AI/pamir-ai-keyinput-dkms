@@ -1,0 +1,38 @@
+Source: pamir-ai-keyinput-dkms
+Section: kernel
+Priority: optional
+Maintainer: PamirAI Incorporated <founders@pamir.ai>
+Standards-Version: 4.6.0
+Build-Depends: debhelper-compat (= 13),
+               dkms,
+               device-tree-compiler
+Homepage: https://github.com/pamir-ai/distiller-cm5-kernel
+Vcs-Git: https://github.com/pamir-ai/distiller-cm5-kernel.git
+Vcs-Browser: https://github.com/pamir-ai/distiller-cm5-kernel
+
+Package: pamir-ai-keyinput-dkms
+Architecture: all
+Depends: ${misc:Depends},
+         dkms,
+         device-tree-compiler,
+         linux-headers-rpi-2712 | linux-headers-generic,
+Recommends:
+Suggests:
+Description: Pamir AI Key Input DKMS module for Raspberry Pi CM5
+ This package provides the DKMS (Dynamic Kernel Module Support) module
+ for the Pamir AI key input driver for Raspberry Pi CM5.
+ .
+ The Pamir AI key input driver provides serial communication with an
+ RP2040 microcontroller to handle button inputs over UART.
+ .
+ Features include:
+ .
+  * Support for UP, DOWN, SELECT, and POWER buttons
+  * Configurable debounce timing
+  * Raw protocol support for direct byte communication
+  * Bidirectional UART communication with character device interface
+  * Device tree overlay support for easy configuration
+  * Standard Linux input subsystem integration
+ .
+ This package automatically compiles and installs the kernel module
+ for the currently running kernel and sets up the device tree overlay. 

@@ -1,0 +1,166 @@
+pamir-ai-keyinput-dkms for Debian
+====================================
+
+This package provides the DKMS (Dynamic Kernel Module Support) module for the
+Pamir AI key input driver on Debian-based systems, specifically targeting 
+Raspberry Pi CM5 platforms.
+
+Installation
+-----------
+
+The package is installed via apt:
+
+    sudo apt install pamir-ai-keyinput-dkms
+
+During installation, the package will:
+1. Compile the device tree overlay
+2. Install the compiled overlay to /boot/firmware/overlays/
+3. Add the overlay configuration to /boot/firmware/config.txt
+4. Build and install the DKMS kernel module
+
+Post-Installation
+-----------------
+
+After installation, reboot your system to activate the changes:
+
+    sudo reboot
+
+Alternatively, you can manually load the module:
+
+    sudo modprobe pamir-ai-keyinput
+
+Verification
+-----------
+
+Check if the module is loaded:
+
+    lsmod | grep pamir-ai-keyinput
+
+Check if the input device is registered:
+
+    cat /proc/bus/input/devices | grep -A 10 "Pamir AI Key Input"
+
+Test button functionality:
+
+    evtest
+    # Select the Pamir AI Key Input device and press buttons
+
+Configuration
+------------
+
+The driver can be configured through device tree overlay parameters in
+/boot/firmware/config.txt:
+
+    dtoverlay=pamir-ai-keyinput,debounce=100,raw_protocol=off
+
+Available parameters:
+- debounce: Debounce time in milliseconds (default: 50)
+- raw_protocol: Enable raw binary protocol (default: on)
+- report_press_only: Only report key press events (default: off)
+- recovery_timeout: UART recovery timeout in milliseconds (default: 1000)
+
+Hardware Setup
+--------------
+
+Connect your RP2040 microcontroller to the Raspberry Pi CM5:
+- RP2040 TX → Pi GPIO 5 (UART2 RX)
+- RP2040 RX → Pi GPIO 4 (UART2 TX)
+- Ground connections
+
+Ensure UART2 is enabled in raspi-config:
+
+    sudo raspi-config
+    # Go to Interface Options → Serial Port
+    # Enable serial port hardware, disable serial console
+
+Troubleshooting
+--------------
+
+Common issues and solutions:
+
+1. Module not loading:
+   - Check kernel headers are installed: sudo apt install linux-headers-$(uname -r)
+   - For Raspberry Pi: sudo apt install raspberrypi-kernel-headers
+   - Rebuild module: sudo dkms build pamir-ai-keyinput/1.0.1
+
+2. No input device:
+   - Check device tree overlay: ls -la /boot/firmware/overlays/pamir-ai-keyinput.dtbo
+   - Verify boot config: grep "dtoverlay=pamir-ai-keyinput" /boot/firmware/config.txt
+   - Check kernel messages: dmesg | grep pamir
+
+3. UART communication issues:
+   - Verify UART2 is enabled in raspi-config
+   - Check GPIO connections
+   - Test with: echo "test" > /dev/pamir-keyinput
+
+4. Permission issues:
+   - Character device permissions: sudo chmod 666 /dev/pamir-keyinput
+   - Add user to input group: sudo usermod -a -G input $USER
+
+Manual Operations
+-----------------
+
+Build the module manually:
+
+    sudo dkms build pamir-ai-keyinput/1.0.1
+
+Install the module manually:
+
+    sudo dkms install pamir-ai-keyinput/1.0.1
+
+Remove the module:
+
+    sudo dkms remove pamir-ai-keyinput/1.0.1 --all
+
+Uninstallation
+--------------
+
+To remove the package:
+
+    sudo apt remove pamir-ai-keyinput-dkms
+
+This will:
+1. Unload the kernel module
+2. Remove the DKMS module
+3. Remove the device tree overlay file
+4. Clean up boot configuration entries
+
+For complete removal including configuration:
+
+    sudo apt purge pamir-ai-keyinput-dkms
+
+Files Installed
+--------------
+
+The package installs the following files:
+
+    /usr/src/pamir-ai-keyinput-1.0.1/         # DKMS source directory
+    /boot/firmware/overlays/pamir-ai-keyinput.dtbo  # Device tree overlay
+    /usr/share/doc/pamir-ai-keyinput-dkms/     # Documentation
+
+Runtime files created:
+
+    /dev/pamir-keyinput                        # Character device
+    /sys/class/input/inputX/                   # Input device sysfs
+    /proc/bus/input/devices                    # Input device info
+
+Support
+-------
+
+For Debian-specific issues:
+- Check the Debian bug tracking system
+- Use reportbug to report issues
+
+For driver-specific issues:
+- Website: https://www.pamir.ai
+- Email: support@pamir.ai
+
+See Also
+--------
+
+- README.md: Complete driver documentation
+- evtest(1): Test input devices
+- dkms(8): Dynamic kernel module support
+- dtoverlay(1): Device tree overlay utilities
+
+ -- Pamir AI Incorporated <support@pamir.ai>  Mon, 01 Jan 2025 00:00:00 +0000 
