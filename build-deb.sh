@@ -10,7 +10,7 @@ PACKAGE_NAME="pamir-ai-keyinput-dkms"
 PACKAGE_VERSION="1.0.0"
 DEBIAN_REVISION="1"
 FULL_VERSION="${PACKAGE_VERSION}-${DEBIAN_REVISION}"
-BUILD_DIR="build"
+BUILD_DIR="dist"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Colors for output
