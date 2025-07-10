@@ -173,13 +173,13 @@ If automatic DKMS build fails:
 
 ```bash
 # Build manually
-sudo dkms build pamir-ai-keyinput/1.0.1
+sudo dkms build pamir-ai-keyinput/1.0.0
 
 # Install manually
-sudo dkms install pamir-ai-keyinput/1.0.1
+sudo dkms install pamir-ai-keyinput/1.0.0
 
 # Remove if needed
-sudo dkms remove pamir-ai-keyinput/1.0.1 --all
+sudo dkms remove pamir-ai-keyinput/1.0.0 --all
 ```
 
 ## Development
@@ -188,7 +188,7 @@ sudo dkms remove pamir-ai-keyinput/1.0.1 --all
 
 The driver source code is located at:
 ```
-/usr/src/pamir-ai-keyinput-1.0.1/
+/usr/src/pamir-ai-keyinput-1.0.0/
 ```
 
 ### Key Files
@@ -211,7 +211,7 @@ This driver is licensed under the GPL v2 license. See the source code for full l
 
 ## Changelog
 
-### Version 1.0.1
+### Version 1.0.0
 - Initial release
 - Basic button input support
 - UART bidirectional communication

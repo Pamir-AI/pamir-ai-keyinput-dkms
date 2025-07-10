@@ -2,172 +2,57 @@
 
 set -e
 
-# Prerm script for pamir-ai-keyinput-dkms
-# This script handles the removal of DKMS modules and cleanup
+PACKAGE_NAME="pamir-ai-keyinput"
+PACKAGE_VERSION="1.0.0"
 
-PACKAGE_NAME="pamir-ai-keyinput-dkms"
-DKMS_MODULE_NAME="pamir-ai-keyinput"
-PACKAGE_VERSION="1.0.1"
-
-# Module names
-MODULES=("pamir-ai-keyinput")
-
-# Logging functions
-log_info() {
-    echo "[INFO] $1" >&2
-}
-
-log_warn() {
-    echo "[WARNING] $1" >&2
-}
-
-log_error() {
-    echo "[ERROR] $1" >&2
-}
-
-# Function to safely unload a module
-unload_module() {
-    local module="$1"
-    local timeout=10
-    local count=0
-    
-    if ! lsmod | grep -q "^$module "; then
-        log_info "Module $module is not loaded"
-        return 0
-    fi
-    
-    log_info "Attempting to unload module $module..."
-    
-    # Try to unload the module
-    if modprobe -r "$module" 2>/dev/null; then
-        log_info "Module $module unloaded successfully"
-        return 0
-    fi
-    
-    # If immediate unload fails, try with a timeout
-    while [ $count -lt $timeout ]; do
-        if ! lsmod | grep -q "^$module "; then
-            log_info "Module $module unloaded successfully"
-            return 0
-        fi
-        
-        sleep 1
-        ((count++))
-        
-        if [ $count -eq 5 ]; then
-            log_warn "Module $module still in use, trying force removal..."
-            if modprobe -r -f "$module" 2>/dev/null; then
-                log_info "Module $module force-unloaded successfully"
-                return 0
-            fi
-        fi
-    done
-    
-    log_error "Failed to unload module $module after $timeout seconds"
-    log_error "Module may be in use or have dependencies"
-    return 1
-}
-
-# Function to unload all modules
-unload_all_modules() {
-    local failed_modules=()
-    
-    log_info "Unloading Pamir AI keyinput modules..."
-    
-    for module in "${MODULES[@]}"; do
-        if ! unload_module "$module"; then
-            failed_modules+=("$module")
-        fi
-    done
-    
-    if [ ${#failed_modules[@]} -gt 0 ]; then
-        log_warn "Failed to unload modules: ${failed_modules[*]}"
-        log_warn "You may need to reboot to completely remove these modules"
-        return 1
-    else
-        log_info "All modules unloaded successfully"
-        return 0
-    fi
-}
-
-# Function to check if any processes are using the input device
-check_input_usage() {
-    local input_processes
-    
-    # Check for processes using input devices
-    if command -v fuser >/dev/null 2>&1; then
-        input_processes=$(fuser /dev/input/* 2>/dev/null | awk '{print $1}' | sort -u | wc -l)
-        if [ "$input_processes" -gt 0 ]; then
-            log_warn "Input devices are currently in use by $input_processes process(es)"
-            log_warn "Consider stopping input applications before removing the module"
-            return 1
-        fi
-    fi
-    
-    # Check for the specific character device
-    if [ -c "/dev/pamir-keyinput" ]; then
-        if command -v fuser >/dev/null 2>&1; then
-            if fuser /dev/pamir-keyinput 2>/dev/null; then
-                log_warn "Pamir keyinput device is currently in use"
-                log_warn "Consider stopping applications using /dev/pamir-keyinput"
-            fi
-        fi
-    fi
-    
-    return 0
-}
-
-# Function to display removal information
-display_removal_info() {
-    echo ""
-    echo "===================================================="
-    echo "  Pamir AI Key Input DKMS Module Removal"
-    echo "===================================================="
-    echo ""
-    echo "The keyinput module is being removed."
-    echo ""
-    echo "Notes:"
-    echo "  - Device tree overlay will remain installed"
-    echo "  - Boot configuration will not be modified"
-    echo "  - Source files will be removed by DKMS"
-    echo ""
-    echo "To completely remove all traces:"
-    echo "  1. Remove overlay from boot config manually"
-    echo "  2. Delete: /boot/firmware/overlays/pamir-ai-keyinput.dtbo"
-    echo "  3. Reboot your system"
-    echo ""
-}
-
-# Main removal logic
 case "$1" in
-    remove|upgrade|deconfigure)
-        log_info "Preparing to remove $PACKAGE_NAME..."
-        
-        # Check for input usage
-        check_input_usage || true
-        
-        # Unload modules
-        if unload_all_modules; then
-            log_info "Module unloading completed successfully"
-        else
-            log_warn "Module unloading completed with warnings"
-            log_warn "Some modules may still be loaded"
-        fi
-        
-        # Display removal information
-        display_removal_info
-        ;;
-        
-    failed-upgrade)
-        log_info "Handling failed upgrade of $PACKAGE_NAME"
-        ;;
-        
-    *)
-        log_error "prerm called with unknown argument '$1'"
-        exit 1
-        ;;
+remove | upgrade | deconfigure)
+	echo "Removing pamir-ai-keyinput-dkms..."
+
+	# Unload modules if they are loaded
+	echo "Unloading kernel module..."
+	if lsmod | grep -q "^pamir-ai-keyinput"; then
+		echo "Unloading pamir-ai-keyinput..."
+		rmmod "pamir-ai-keyinput" || echo "Warning: Failed to unload pamir-ai-keyinput"
+	fi
+
+	# Remove device tree overlay configuration from config.txt
+	CONFIG_FILE="/boot/firmware/config.txt"
+	OVERLAY_LINE="dtoverlay=pamir-ai-keyinput"
+	COMMENT_LINE="# Pamir AI Keyinput - Added by pamir-ai-keyinput-dkms package"
+
+	if [ -f "${CONFIG_FILE}" ]; then
+		echo "Removing device tree overlay configuration from ${CONFIG_FILE}..."
+
+		# Create a temporary file without the overlay lines
+		TEMP_FILE=$(mktemp)
+
+		# Remove the overlay line and the comment line
+		grep -v "^${OVERLAY_LINE}" "${CONFIG_FILE}" | grep -v "^${COMMENT_LINE}" >"${TEMP_FILE}"
+
+		# Replace the original file
+		mv "${TEMP_FILE}" "${CONFIG_FILE}"
+
+		echo "Device tree overlay configuration removed from ${CONFIG_FILE}"
+	else
+		echo "Warning: ${CONFIG_FILE} not found, skipping config removal"
+	fi
+
+	# Remove from DKMS
+	if dkms status -m "${PACKAGE_NAME}" -v "${PACKAGE_VERSION}" | grep -q "${PACKAGE_NAME}"; then
+		echo "Removing ${PACKAGE_NAME} from DKMS..."
+		dkms remove -m "${PACKAGE_NAME}" -v "${PACKAGE_VERSION}" --all || true
+	fi
+	;;
+
+failed-upgrade) ;;
+
+*)
+	echo "prerm called with unknown argument \`$1'" >&2
+	exit 1
+	;;
 esac
 
-# Let debhelper handle DKMS operations
+#DEBHELPER#
 
-exit 0 
+exit 0

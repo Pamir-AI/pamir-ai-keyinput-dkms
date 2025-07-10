@@ -2,177 +2,62 @@
 
 set -e
 
-# Postrm script for pamir-ai-keyinput-dkms
-# This script handles cleanup after package removal
+PACKAGE_NAME="pamir-ai-keyinput"
+PACKAGE_VERSION="1.0.0"
+DKMS_SOURCE_DIR="/usr/src/${PACKAGE_NAME}-${PACKAGE_VERSION}"
+OVERLAY_DEST="/boot/firmware/overlays/pamir-ai-keyinput.dtbo"
 
-PACKAGE_NAME="pamir-ai-keyinput-dkms"
-DKMS_MODULE_NAME="pamir-ai-keyinput"
-PACKAGE_VERSION="1.0.1"
-DTBO_FILE="/boot/firmware/overlays/pamir-ai-keyinput.dtbo"
-CONFIG_FILE="/boot/firmware/config.txt"
-ALTERNATIVE_CONFIG="/boot/config.txt"
-
-# Logging functions
-log_info() {
-    echo "[INFO] $1" >&2
-}
-
-log_warn() {
-    echo "[WARNING] $1" >&2
-}
-
-log_error() {
-    echo "[ERROR] $1" >&2
-}
-
-# Function to find the correct config file
-find_config_file() {
-    if [ -f "$CONFIG_FILE" ]; then
-        echo "$CONFIG_FILE"
-    elif [ -f "$ALTERNATIVE_CONFIG" ]; then
-        echo "$ALTERNATIVE_CONFIG"
-    else
-        return 1
-    fi
-}
-
-# Function to remove overlay configuration from boot config
-remove_overlay_config() {
-    local config_file
-    
-    if ! config_file=$(find_config_file); then
-        log_info "Boot configuration file not found, skipping overlay removal"
-        return 0
-    fi
-    
-    log_info "Checking boot configuration: $config_file"
-    
-    # Check if overlay is present
-    if ! grep -q "dtoverlay=pamir-ai-keyinput" "$config_file"; then
-        log_info "Overlay not found in boot configuration"
-        return 0
-    fi
-    
-    # Create backup
-    local backup_file="${config_file}.backup.$(date +%Y%m%d_%H%M%S)"
-    if cp "$config_file" "$backup_file"; then
-        log_info "Created backup: $backup_file"
-    else
-        log_warn "Failed to create backup of config file"
-    fi
-    
-    # Remove overlay configuration
-    log_info "Removing overlay configuration from boot config..."
-    
-    # Remove the overlay line and the comment above it
-    sed -i '/^# Pamir AI Key Input/,/^dtoverlay=pamir-ai-keyinput/d' "$config_file"
-    
-    # Remove any empty lines that might be left
-    sed -i '/^$/N;/^\n$/d' "$config_file"
-    
-    log_info "Overlay configuration removed from boot config"
-    return 0
-}
-
-# Function to remove device tree overlay file
-remove_overlay_file() {
-    if [ -f "$DTBO_FILE" ]; then
-        log_info "Removing device tree overlay file: $DTBO_FILE"
-        if rm -f "$DTBO_FILE"; then
-            log_info "Device tree overlay file removed successfully"
-        else
-            log_warn "Failed to remove device tree overlay file"
-        fi
-    else
-        log_info "Device tree overlay file not found, skipping removal"
-    fi
-}
-
-# Function to clean up any leftover files
-cleanup_leftover_files() {
-    local leftover_files=(
-        "/usr/src/$DKMS_MODULE_NAME-$PACKAGE_VERSION"
-        "/var/lib/dkms/$DKMS_MODULE_NAME"
-        "/lib/modules/*/updates/dkms/pamir-ai-keyinput.ko"
-    )
-    
-    log_info "Cleaning up any leftover files..."
-    
-    for pattern in "${leftover_files[@]}"; do
-        # Use find to handle glob patterns safely
-        if [ "$pattern" = "/usr/src/$DKMS_MODULE_NAME-$PACKAGE_VERSION" ] || 
-           [ "$pattern" = "/var/lib/dkms/$DKMS_MODULE_NAME" ]; then
-            # Direct path check
-            if [ -e "$pattern" ]; then
-                log_info "Removing leftover: $pattern"
-                rm -rf "$pattern" 2>/dev/null || log_warn "Failed to remove $pattern"
-            fi
-        else
-            # Glob pattern - use find
-            find /lib/modules -name "pamir-ai-keyinput.ko" -type f -exec rm -f {} \; 2>/dev/null || true
-        fi
-    done
-}
-
-# Function to display post-removal information
-display_post_removal_info() {
-    echo ""
-    echo "===================================================="
-    echo "  Pamir AI Key Input DKMS Module Removal Complete"
-    echo "===================================================="
-    echo ""
-    echo "The keyinput module has been removed successfully."
-    echo ""
-    echo "What was cleaned up:"
-    echo "  - DKMS module files"
-    echo "  - Kernel module files"
-    echo "  - Device tree overlay file"
-    echo "  - Boot configuration entries"
-    echo ""
-    echo "To complete the removal:"
-    echo "  1. Reboot your system to ensure all changes take effect"
-    echo "  2. Check that no Pamir AI modules are loaded: lsmod | grep pamir"
-    echo ""
-    echo "If you plan to reinstall:"
-    echo "  - The package can be reinstalled normally"
-    echo "  - All configuration will be restored automatically"
-    echo ""
-}
-
-# Main post-removal logic
 case "$1" in
-    remove|purge)
-        log_info "Performing post-removal cleanup for $PACKAGE_NAME..."
-        
-        # Remove overlay configuration from boot config
-        if remove_overlay_config; then
-            log_info "Boot configuration cleanup completed"
-        else
-            log_warn "Boot configuration cleanup failed"
-        fi
-        
-        # Remove device tree overlay file
-        remove_overlay_file
-        
-        # Clean up any leftover files (only on purge)
-        if [ "$1" = "purge" ]; then
-            cleanup_leftover_files
-        fi
-        
-        # Display post-removal information
-        display_post_removal_info
-        ;;
-        
-    upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
-        log_info "Handling $1 for $PACKAGE_NAME"
-        ;;
-        
-    *)
-        log_error "postrm called with unknown argument '$1'"
-        exit 1
-        ;;
+remove)
+	echo "Cleaning up pamir-ai-keyinput-dkms..."
+
+	# Remove device tree overlay
+	if [ -f "${OVERLAY_DEST}" ]; then
+		echo "Removing device tree overlay..."
+		rm -f "${OVERLAY_DEST}"
+	fi
+
+	# Update module dependencies
+	echo "Updating module dependencies..."
+	depmod -a || true
+
+	echo "Pamir AI Keyinput DKMS removal completed"
+	;;
+
+purge)
+	echo "Purging pamir-ai-keyinput-dkms..."
+
+	# Remove device tree overlay file only (not the directory)
+	if [ -f "${OVERLAY_DEST}" ]; then
+		echo "Removing device tree overlay..."
+		rm -f "${OVERLAY_DEST}"
+	fi
+
+	# Remove DKMS source directory (if it still exists)
+	if [ -d "${DKMS_SOURCE_DIR}" ]; then
+		echo "Removing DKMS source directory..."
+		rm -rf "${DKMS_SOURCE_DIR}"
+	fi
+
+	# Update module dependencies
+	echo "Updating module dependencies..."
+	depmod -a || true
+
+	echo "Pamir AI Keyinput DKMS purge completed"
+
+	echo ""
+	echo "Note: The device tree overlay configuration has been automatically"
+	echo "removed from /boot/firmware/config.txt during package removal."
+	;;
+
+upgrade | failed-upgrade | abort-install | abort-upgrade | disappear) ;;
+
+*)
+	echo "postrm called with unknown argument \`$1'" >&2
+	exit 1
+	;;
 esac
 
-# Let debhelper handle final cleanup
+#DEBHELPER#
 
-exit 0 
+exit 0

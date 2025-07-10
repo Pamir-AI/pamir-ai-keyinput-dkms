@@ -81,7 +81,7 @@ Common issues and solutions:
 1. Module not loading:
    - Check kernel headers are installed: sudo apt install linux-headers-$(uname -r)
    - For Raspberry Pi: sudo apt install raspberrypi-kernel-headers
-   - Rebuild module: sudo dkms build pamir-ai-keyinput/1.0.1
+   - Rebuild module: sudo dkms build pamir-ai-keyinput/1.0.0
 
 2. No input device:
    - Check device tree overlay: ls -la /boot/firmware/overlays/pamir-ai-keyinput.dtbo
@@ -102,15 +102,15 @@ Manual Operations
 
 Build the module manually:
 
-    sudo dkms build pamir-ai-keyinput/1.0.1
+    sudo dkms build pamir-ai-keyinput/1.0.0
 
 Install the module manually:
 
-    sudo dkms install pamir-ai-keyinput/1.0.1
+    sudo dkms install pamir-ai-keyinput/1.0.0
 
 Remove the module:
 
-    sudo dkms remove pamir-ai-keyinput/1.0.1 --all
+    sudo dkms remove pamir-ai-keyinput/1.0.0 --all
 
 Uninstallation
 --------------
@@ -134,7 +134,7 @@ Files Installed
 
 The package installs the following files:
 
-    /usr/src/pamir-ai-keyinput-1.0.1/         # DKMS source directory
+    /usr/src/pamir-ai-keyinput-1.0.0/         # DKMS source directory
     /boot/firmware/overlays/pamir-ai-keyinput.dtbo  # Device tree overlay
     /usr/share/doc/pamir-ai-keyinput-dkms/     # Documentation
 
