@@ -26,7 +26,7 @@
 
 #define BUF_SIZE 32
 #define TX_BUF_SIZE 256
-#define DEVICE_NAME "pamir-keyinput"
+#define DEVICE_NAME "pamir-uart"
 #define MAX_DEVICES 1
 
 /* Button state masks */
